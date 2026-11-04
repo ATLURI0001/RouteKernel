@@ -1,0 +1,33 @@
+name: Validate RouteKernel
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Install test settings
+        run: |
+          cp .env.example .env
+          sed -i 's/change-me-before-deploy/ci-only-strong-demo-passphrase/' .env
+          ./scripts/bootstrap-certs.sh
+      - name: Validate Docker Compose and Nginx syntax
+        run: ./scripts/validate.sh
+      - name: Boot full stack and smoke test
+        run: |
+          ./scripts/deploy.sh
+          ./scripts/smoke-test.sh
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs --tail=120 || true
+      - name: Stop stack
+        if: always()
+        run: docker compose down || true

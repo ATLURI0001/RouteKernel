@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: RouteKernel
+    orgId: 1
+    folder: RouteKernel
+    type: file
+    disableDeletion: true
+    options:
+      path: /var/lib/grafana/dashboards
