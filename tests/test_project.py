@@ -5,7 +5,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 def load(path):
-    return (ROOT / path).read_text()
+    return (ROOT / path).read_text(encoding='utf-8')
 
 class ProjectTests(unittest.TestCase):
     def test_modern_tls_only(self):
@@ -41,6 +41,60 @@ class ProjectTests(unittest.TestCase):
         source = load('apps/demo/app.py')
         self.assertIn('async def ws_handler', source)
         self.assertIn('async def health', source)
+
+    def test_security_headers_and_hardening(self):
+        cfg = load('nginx/conf.d/edge.conf')
+        self.assertIn('add_header X-Content-Type-Options nosniff always;', cfg)
+        self.assertIn('add_header Referrer-Policy strict-origin-when-cross-origin always;', cfg)
+        self.assertIn('add_header X-Frame-Options DENY always;', cfg)
+        self.assertIn('http2 on;', cfg)
+        self.assertIn('limit_conn client_conn 50;', cfg)
+
+    def test_proxy_forwarding_invariants(self):
+        proxy = load('nginx/snippets/proxy.conf')
+        self.assertIn('proxy_http_version 1.1;', proxy)
+        self.assertIn('proxy_set_header Host $host;', proxy)
+        self.assertIn('proxy_set_header X-Real-IP $remote_addr;', proxy)
+        self.assertIn('proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;', proxy)
+        self.assertIn('proxy_set_header X-Forwarded-Proto $scheme;', proxy)
+        self.assertIn('proxy_set_header X-Request-ID $request_id;', proxy)
+        self.assertIn('proxy_connect_timeout 3s;', proxy)
+        self.assertIn('proxy_set_header Connection "";', proxy)
+
+    def test_rate_limiting_and_http_status(self):
+        nginx_cfg = load('nginx/nginx.conf')
+        self.assertIn('limit_req_status 429;', nginx_cfg)
+        self.assertIn('limit_req_zone $binary_remote_addr zone=api_rate:10m rate=20r/s;', nginx_cfg)
+        self.assertIn('limit_conn_zone $binary_remote_addr zone=client_conn:10m;', nginx_cfg)
+
+        edge_cfg = load('nginx/conf.d/edge.conf')
+        self.assertIn('limit_req zone=api_rate burst=40 nodelay;', edge_cfg)
+
+    def test_upstream_load_balancing_and_keepalive(self):
+        cfg = load('nginx/nginx.conf')
+        self.assertIn('least_conn;', cfg)
+        self.assertIn('server api-a:8000 max_fails=3 fail_timeout=10s;', cfg)
+        self.assertIn('server api-b:8000 max_fails=3 fail_timeout=10s;', cfg)
+        self.assertIn('keepalive 32;', cfg)
+        self.assertIn('keepalive 8;', cfg)
+
+    def test_metrics_port_isolation(self):
+        edge_cfg = load('nginx/conf.d/edge.conf')
+        self.assertIn('listen 8081;', edge_cfg)
+        self.assertIn('location = /stub_status { stub_status; }', edge_cfg)
+        self.assertIn('location = /health { return 200 \'ok\\n\'; }', edge_cfg)
+        self.assertIn('location / { return 404; }', edge_cfg)
+
+    def test_http_redirect_preserves_uri(self):
+        edge_cfg = load('nginx/conf.d/edge.conf')
+        self.assertIn('listen 80 default_server;', edge_cfg)
+        self.assertIn('return 308 https://$host:8443$request_uri;', edge_cfg)
+
+    def test_compose_healthchecks_and_isolation(self):
+        compose = load('compose.yaml')
+        self.assertIn('http://127.0.0.1:8081/health', compose)
+        self.assertIn('GF_USERS_ALLOW_SIGN_UP: "false"', compose)
+        self.assertIn('--nginx.scrape-uri=http://edge:8081/stub_status', compose)
 
 if __name__ == '__main__':
     unittest.main()
