@@ -96,5 +96,15 @@ class ProjectTests(unittest.TestCase):
         self.assertIn('GF_USERS_ALLOW_SIGN_UP: "false"', compose)
         self.assertIn('--nginx.scrape-uri=http://edge:8081/stub_status', compose)
 
+    def test_gzip_compression_and_buffer_tuning(self):
+        cfg = load('nginx/nginx.conf')
+        self.assertIn('gzip on;', cfg)
+        self.assertIn('gzip_vary on;', cfg)
+        self.assertIn('gzip_comp_level 5;', cfg)
+        self.assertIn('gzip_min_length 256;', cfg)
+        self.assertIn('application/json', cfg)
+        self.assertIn('client_body_buffer_size 128k;', cfg)
+        self.assertIn('large_client_header_buffers 4 8k;', cfg)
+
 if __name__ == '__main__':
     unittest.main()
