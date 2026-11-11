@@ -47,8 +47,16 @@ class ProjectTests(unittest.TestCase):
         self.assertIn('add_header X-Content-Type-Options nosniff always;', cfg)
         self.assertIn('add_header Referrer-Policy strict-origin-when-cross-origin always;', cfg)
         self.assertIn('add_header X-Frame-Options DENY always;', cfg)
+        self.assertIn('add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;', cfg)
+        self.assertIn("add_header Content-Security-Policy \"default-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'\" always;", cfg)
         self.assertIn('http2 on;', cfg)
         self.assertIn('limit_conn client_conn 50;', cfg)
+
+    def test_health_location_preserves_inherited_security_headers(self):
+        cfg = load('nginx/conf.d/edge.conf')
+        health_block = cfg.split('location = /health {')[1].split('}', 1)[0]
+        self.assertIn('default_type text/plain;', health_block)
+        self.assertNotIn('add_header', health_block)
 
     def test_proxy_forwarding_invariants(self):
         proxy = load('nginx/snippets/proxy.conf')
