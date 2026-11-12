@@ -23,7 +23,7 @@ async def index(request):
 async def ws_handler(request):
     if ROLE != "realtime":
         raise web.HTTPNotFound()
-    ws = web.WebSocketResponse(heartbeat=30)
+    ws = web.WebSocketResponse(heartbeat=30, max_msg_size=1024 * 1024)
     await ws.prepare(request)
     async for msg in ws:
         if msg.type == WSMsgType.TEXT:
