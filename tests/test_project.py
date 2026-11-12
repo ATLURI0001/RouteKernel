@@ -90,8 +90,15 @@ class ProjectTests(unittest.TestCase):
         edge_cfg = load('nginx/conf.d/edge.conf')
         self.assertIn('listen 8081;', edge_cfg)
         self.assertIn('location = /stub_status { stub_status; }', edge_cfg)
-        self.assertIn('location = /health { return 200 \'ok\\n\'; }', edge_cfg)
+        self.assertIn("location = /health { default_type text/plain; return 200 'ok\\n'; }", edge_cfg)
         self.assertIn('location / { return 404; }', edge_cfg)
+
+    def test_websocket_frame_and_proxy_buffering_bounds(self):
+        edge_cfg = load('nginx/conf.d/edge.conf')
+        self.assertIn('proxy_max_temp_file_size 0;', edge_cfg)
+        self.assertIn('proxy_send_timeout 60s;', edge_cfg)
+        source = load('apps/demo/app.py')
+        self.assertIn('max_msg_size=1024 * 1024', source)
 
     def test_http_redirect_preserves_uri(self):
         edge_cfg = load('nginx/conf.d/edge.conf')
