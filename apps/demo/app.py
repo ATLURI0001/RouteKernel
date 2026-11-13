@@ -25,18 +25,25 @@ async def ws_handler(request):
         raise web.HTTPNotFound()
     ws = web.WebSocketResponse(heartbeat=30, max_msg_size=1024 * 1024)
     await ws.prepare(request)
-    async for msg in ws:
-        if msg.type == WSMsgType.TEXT:
-            await ws.send_str(f"echo:{msg.data}")
-        elif msg.type == WSMsgType.BINARY:
-            await ws.send_bytes(msg.data)
-        elif msg.type == WSMsgType.ERROR:
-            break
+    try:
+        async for msg in ws:
+            if msg.type == WSMsgType.TEXT:
+                await ws.send_str(f"echo:{msg.data}")
+            elif msg.type == WSMsgType.BINARY:
+                await ws.send_bytes(msg.data)
+            elif msg.type in (WSMsgType.CLOSE, WSMsgType.CLOSING, WSMsgType.CLOSED, WSMsgType.ERROR):
+                break
+    except (ConnectionResetError, RuntimeError):
+        pass
+    finally:
+        if not ws.closed:
+            await ws.close()
     return ws
 
 def create_app():
     app = web.Application(client_max_size=10 * 1024 * 1024)
     app.router.add_get("/health", health)
+    app.router.add_get("/ws", ws_handler)
     app.router.add_get("/ws/", ws_handler)
     app.router.add_get("/{tail:.*}", index)
     return app
