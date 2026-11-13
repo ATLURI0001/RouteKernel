@@ -41,6 +41,9 @@ class ProjectTests(unittest.TestCase):
         source = load('apps/demo/app.py')
         self.assertIn('async def ws_handler', source)
         self.assertIn('async def health', source)
+        self.assertIn('add_get("/ws", ws_handler)', source)
+        self.assertIn('add_get("/ws/", ws_handler)', source)
+        self.assertIn('WSMsgType.CLOSE', source)
 
     def test_security_headers_and_hardening(self):
         cfg = load('nginx/conf.d/edge.conf')
