@@ -76,6 +76,7 @@ class ProjectTests(unittest.TestCase):
         self.assertIn('proxy_hide_header X-Powered-By;', proxy)
         self.assertIn('proxy_next_upstream error timeout http_502 http_503 http_504;', proxy)
         self.assertIn('proxy_next_upstream_tries 2;', proxy)
+        self.assertIn('proxy_next_upstream_timeout 10s;', proxy)
 
     def test_rate_limiting_and_http_status(self):
         nginx_cfg = load('nginx/nginx.conf')
@@ -131,7 +132,8 @@ class ProjectTests(unittest.TestCase):
 
     def test_trace_id_propagation_in_demo_app(self):
         source = load('apps/demo/app.py')
-        self.assertIn('request.headers.get("X-Request-ID")', source)
+        self.assertIn('def sanitize_header_val', source)
+        self.assertIn('sanitize_header_val(request.headers.get("X-Request-ID"))', source)
         self.assertIn('data["requestId"] = req_id', source)
         self.assertIn('"X-Request-ID": req_id', source)
 
