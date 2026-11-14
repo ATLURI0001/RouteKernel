@@ -5,8 +5,14 @@ from aiohttp import web, WSMsgType
 ROLE = os.getenv("APP_ROLE", "web")
 INSTANCE = os.getenv("INSTANCE", ROLE)
 
+def sanitize_header_val(val: str | None) -> str | None:
+    if not val:
+        return None
+    cleaned = val.replace("\r", "").replace("\n", "").strip()
+    return cleaned if cleaned else None
+
 async def health(request):
-    req_id = request.headers.get("X-Request-ID")
+    req_id = sanitize_header_val(request.headers.get("X-Request-ID"))
     data = {"status": "ok", "service": INSTANCE}
     if req_id:
         data["requestId"] = req_id
@@ -14,7 +20,7 @@ async def health(request):
     return web.json_response(data, headers=headers)
 
 async def index(request):
-    req_id = request.headers.get("X-Request-ID")
+    req_id = sanitize_header_val(request.headers.get("X-Request-ID"))
     headers = {"X-Request-ID": req_id} if req_id else {}
     if ROLE == "web":
         return web.Response(
