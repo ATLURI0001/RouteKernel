@@ -6,9 +6,16 @@ ROLE = os.getenv("APP_ROLE", "web")
 INSTANCE = os.getenv("INSTANCE", ROLE)
 
 async def health(request):
-    return web.json_response({"status": "ok", "service": INSTANCE})
+    req_id = request.headers.get("X-Request-ID")
+    data = {"status": "ok", "service": INSTANCE}
+    if req_id:
+        data["requestId"] = req_id
+    headers = {"X-Request-ID": req_id} if req_id else {}
+    return web.json_response(data, headers=headers)
 
 async def index(request):
+    req_id = request.headers.get("X-Request-ID")
+    headers = {"X-Request-ID": req_id} if req_id else {}
     if ROLE == "web":
         return web.Response(
             text=("<!doctype html><html><head><meta charset='utf-8'>"
@@ -17,8 +24,12 @@ async def index(request):
                   "<p>Try <a href='/api/'>/api/</a> and WebSocket /ws/.</p>"
                   "</body></html>"),
             content_type="text/html",
+            headers=headers,
         )
-    return web.json_response({"service": ROLE, "instance": INSTANCE, "path": request.path})
+    data = {"service": ROLE, "instance": INSTANCE, "path": request.path}
+    if req_id:
+        data["requestId"] = req_id
+    return web.json_response(data, headers=headers)
 
 async def ws_handler(request):
     if ROLE != "realtime":

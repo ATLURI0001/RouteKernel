@@ -70,7 +70,12 @@ class ProjectTests(unittest.TestCase):
         self.assertIn('proxy_set_header X-Forwarded-Proto $scheme;', proxy)
         self.assertIn('proxy_set_header X-Request-ID $request_id;', proxy)
         self.assertIn('proxy_connect_timeout 3s;', proxy)
+        self.assertIn('proxy_read_timeout 30s;', proxy)
+        self.assertIn('proxy_send_timeout 30s;', proxy)
         self.assertIn('proxy_set_header Connection "";', proxy)
+        self.assertIn('proxy_hide_header X-Powered-By;', proxy)
+        self.assertIn('proxy_next_upstream error timeout http_502 http_503 http_504;', proxy)
+        self.assertIn('proxy_next_upstream_tries 2;', proxy)
 
     def test_rate_limiting_and_http_status(self):
         nginx_cfg = load('nginx/nginx.conf')
@@ -123,6 +128,12 @@ class ProjectTests(unittest.TestCase):
         self.assertIn('application/json', cfg)
         self.assertIn('client_body_buffer_size 128k;', cfg)
         self.assertIn('large_client_header_buffers 4 8k;', cfg)
+
+    def test_trace_id_propagation_in_demo_app(self):
+        source = load('apps/demo/app.py')
+        self.assertIn('request.headers.get("X-Request-ID")', source)
+        self.assertIn('data["requestId"] = req_id', source)
+        self.assertIn('"X-Request-ID": req_id', source)
 
 if __name__ == '__main__':
     unittest.main()
