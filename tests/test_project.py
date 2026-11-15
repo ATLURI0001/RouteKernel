@@ -142,5 +142,15 @@ class ProjectTests(unittest.TestCase):
         self.assertIn('data["requestId"] = req_id', source)
         self.assertIn('"X-Request-ID": req_id', source)
 
+    def test_slowloris_timeouts_and_socket_resets(self):
+        cfg = load('nginx/nginx.conf')
+        self.assertIn('client_body_timeout 15s;', cfg)
+        self.assertIn('client_header_timeout 15s;', cfg)
+        self.assertIn('send_timeout 15s;', cfg)
+        self.assertIn('reset_timedout_connection on;', cfg)
+
+        proxy = load('nginx/snippets/proxy.conf')
+        self.assertIn('proxy_ssl_server_name on;', proxy)
+
 if __name__ == '__main__':
     unittest.main()
