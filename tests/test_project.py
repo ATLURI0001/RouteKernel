@@ -52,6 +52,7 @@ class ProjectTests(unittest.TestCase):
         self.assertIn('add_header X-Frame-Options DENY always;', cfg)
         self.assertIn('add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;', cfg)
         self.assertIn("add_header Content-Security-Policy \"default-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'\" always;", cfg)
+        self.assertIn('add_header X-Request-ID $request_id always;', cfg)
         self.assertIn('http2 on;', cfg)
         self.assertIn('limit_conn client_conn 50;', cfg)
 
@@ -77,6 +78,10 @@ class ProjectTests(unittest.TestCase):
         self.assertIn('proxy_next_upstream error timeout http_502 http_503 http_504;', proxy)
         self.assertIn('proxy_next_upstream_tries 2;', proxy)
         self.assertIn('proxy_next_upstream_timeout 10s;', proxy)
+        self.assertIn('proxy_buffering on;', proxy)
+        self.assertIn('proxy_buffer_size 4k;', proxy)
+        self.assertIn('proxy_buffers 8 16k;', proxy)
+        self.assertIn('proxy_busy_buffers_size 32k;', proxy)
 
     def test_rate_limiting_and_http_status(self):
         nginx_cfg = load('nginx/nginx.conf')
