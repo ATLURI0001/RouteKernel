@@ -8,7 +8,7 @@ INSTANCE = os.getenv("INSTANCE", ROLE)
 def sanitize_header_val(val: str | None) -> str | None:
     if not val:
         return None
-    cleaned = val.replace("\r", "").replace("\n", "").strip()
+    cleaned = val.replace("\r", "").replace("\n", "").strip()[:128]
     return cleaned if cleaned else None
 
 async def health(request):
