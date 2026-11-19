@@ -152,5 +152,17 @@ class ProjectTests(unittest.TestCase):
         proxy = load('nginx/snippets/proxy.conf')
         self.assertIn('proxy_ssl_server_name on;', proxy)
 
+    def test_header_sanitization_and_smuggling_defense(self):
+        cfg = load('nginx/nginx.conf')
+        self.assertIn('underscores_in_headers off;', cfg)
+        self.assertIn('ignore_invalid_headers on;', cfg)
+
+        proxy = load('nginx/snippets/proxy.conf')
+        self.assertIn('proxy_hide_header Server;', proxy)
+        self.assertIn('proxy_hide_header X-Powered-By;', proxy)
+        self.assertIn('proxy_set_header X-Forwarded-Host $host;', proxy)
+        self.assertIn('proxy_set_header X-Forwarded-Port $server_port;', proxy)
+        self.assertIn('proxy_intercept_errors on;', proxy)
+
 if __name__ == '__main__':
     unittest.main()
