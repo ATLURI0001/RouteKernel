@@ -83,6 +83,15 @@ class ProjectTests(unittest.TestCase):
         self.assertIn('proxy_buffers 8 16k;', proxy)
         self.assertIn('proxy_busy_buffers_size 32k;', proxy)
 
+    def test_rfc7807_problem_json_error_pages(self):
+        edge_cfg = load('nginx/conf.d/edge.conf')
+        self.assertIn('error_page 429 = @rate_limited;', edge_cfg)
+        self.assertIn('error_page 502 503 504 = @gateway_error;', edge_cfg)
+        self.assertIn('default_type application/problem+json;', edge_cfg)
+        self.assertIn('"title":"Too Many Requests"', edge_cfg)
+        self.assertIn('"title":"Bad Gateway"', edge_cfg)
+        self.assertIn('"requestId":"$request_id"', edge_cfg)
+
     def test_rate_limiting_and_http_status(self):
         nginx_cfg = load('nginx/nginx.conf')
         self.assertIn('limit_req_status 429;', nginx_cfg)
